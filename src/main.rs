@@ -7,6 +7,7 @@ extern crate test;
 
 mod naive;
 mod naive2;
+mod naive3;
 mod two_way;
 
 pub struct StringMatcher<'a, S> {
@@ -62,6 +63,22 @@ pub fn naive2_contains<'a>(haystack: &'a str, needle: &'a str) -> bool {
     }
 }
 
+impl<'a> Iterator<(uint, uint)> for StringMatcher<'a, naive3::Searcher> {
+    #[inline]
+    fn next(&mut self) -> Option<(uint, uint)> {
+        self.searcher.next(self.haystack.as_bytes(), self.needle.as_bytes())
+    }
+}
+
+pub fn naive3_contains<'a>(haystack: &'a str, needle: &'a str) -> bool {
+    if needle.is_empty() {
+        true
+    } else {
+        let mut sm = StringMatcher::new(haystack, needle, naive3::Searcher::new());
+        sm.next().is_some()
+    }
+}
+
 impl<'a> Iterator<(uint, uint)> for StringMatcher<'a, two_way::Searcher> {
     #[inline]
     fn next(&mut self) -> Option<(uint, uint)> {
@@ -82,7 +99,7 @@ pub fn two_way_contains<'a>(haystack: &'a str, needle: &'a str) -> bool {
 
 #[cfg(test)]
 mod bench {
-    use super::{naive_contains, naive2_contains, two_way_contains};
+    use super::{naive_contains, naive2_contains, naive3_contains, two_way_contains};
     use test::Bencher;
     // following benchmarks were stolen from libcollections/str.rs
     static sh_sh_haystack: &'static str = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
@@ -125,7 +142,7 @@ mod bench {
     malesuada sollicitudin quam eu fermentum.";
     static sh_lo_needle: &'static str = "english";
 
-    static bad_naive_haystack: &'static str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    static bad_naive_haystack: &'static str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     static bad_naive_needle: &'static str = "aaaaaaaab";
 
     static equal_haystack: &'static str = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
@@ -133,7 +150,6 @@ mod bench {
 
 
     static all_substrings_haystack: &'static str = "All mimsy were the borogoves.";
-
 
     #[bench]
     fn naive_contains_short_short(b: &mut Bencher) {
@@ -213,6 +229,48 @@ mod bench {
             for i in range(0, n) {
                 for j in range(i+1, n + 1) {
                     assert!(naive2_contains(all_substrings_haystack,
+                                           all_substrings_haystack.slice(i, j)));
+                }
+            }
+        })
+    }
+
+    #[bench]
+    fn naive3_contains_short_short(b: &mut Bencher) {
+        b.iter(|| {
+            assert!(naive3_contains(sh_sh_haystack, sh_sh_needle));
+        })
+    }
+
+    #[bench]
+    fn naive3_contains_short_long(b: &mut Bencher) {
+        b.iter(|| {
+            assert!(!naive3_contains(sh_lo_haystack, sh_lo_needle));
+        })
+    }
+
+    #[bench]
+    fn naive3_contains_bad_naive(b: &mut Bencher) {
+        b.iter(|| {
+            assert!(!naive3_contains(bad_naive_haystack, bad_naive_needle));
+        })
+    }
+
+    #[bench]
+    fn naive3_contains_equal(b: &mut Bencher) {
+        b.iter(|| {
+            assert!(naive3_contains(equal_haystack, equal_needle));
+        })
+    }
+
+    #[bench]
+    fn naive3_contains_all_substrings(b: &mut Bencher) {
+        let n = all_substrings_haystack.len();
+        b.iter(|| {
+            assert!(naive3_contains(all_substrings_haystack, ""));
+            for i in range(0, n) {
+                for j in range(i+1, n + 1) {
+                    assert!(naive3_contains(all_substrings_haystack,
                                            all_substrings_haystack.slice(i, j)));
                 }
             }
