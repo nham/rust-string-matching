@@ -6,6 +6,7 @@ extern crate test;
 // tuned BM
 
 mod naive;
+mod naive2;
 mod two_way;
 
 pub struct StringMatcher<'a, S> {
@@ -45,6 +46,22 @@ pub fn naive_contains<'a>(haystack: &'a str, needle: &'a str) -> bool {
 }
 
 
+impl<'a> Iterator<(uint, uint)> for StringMatcher<'a, naive2::Searcher> {
+    #[inline]
+    fn next(&mut self) -> Option<(uint, uint)> {
+        self.searcher.next(self.haystack.as_bytes(), self.needle.as_bytes())
+    }
+}
+
+pub fn naive2_contains<'a>(haystack: &'a str, needle: &'a str) -> bool {
+    if needle.is_empty() {
+        true
+    } else {
+        let mut sm = StringMatcher::new(haystack, needle, naive2::Searcher::new());
+        sm.next().is_some()
+    }
+}
+
 impl<'a> Iterator<(uint, uint)> for StringMatcher<'a, two_way::Searcher> {
     #[inline]
     fn next(&mut self) -> Option<(uint, uint)> {
@@ -65,7 +82,7 @@ pub fn two_way_contains<'a>(haystack: &'a str, needle: &'a str) -> bool {
 
 #[cfg(test)]
 mod bench {
-    use super::{naive_contains, two_way_contains};
+    use super::{naive_contains, naive2_contains, two_way_contains};
     use test::Bencher;
     // following benchmarks were stolen from libcollections/str.rs
     static sh_sh_haystack: &'static str = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
@@ -115,6 +132,9 @@ mod bench {
     static equal_needle: &'static str = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
 
 
+    static all_substrings_haystack: &'static str = "All mimsy were the borogoves.";
+
+
     #[bench]
     fn naive_contains_short_short(b: &mut Bencher) {
         b.iter(|| {
@@ -144,6 +164,62 @@ mod bench {
     }
 
     #[bench]
+    fn naive_contains_all_substrings(b: &mut Bencher) {
+        let n = all_substrings_haystack.len();
+        b.iter(|| {
+            assert!(naive_contains(all_substrings_haystack, ""));
+            for i in range(0, n) {
+                for j in range(i+1, n + 1) {
+                    assert!(naive_contains(all_substrings_haystack,
+                                           all_substrings_haystack.slice(i, j)));
+                }
+            }
+        })
+    }
+
+    #[bench]
+    fn naive2_contains_short_short(b: &mut Bencher) {
+        b.iter(|| {
+            assert!(naive2_contains(sh_sh_haystack, sh_sh_needle));
+        })
+    }
+
+    #[bench]
+    fn naive2_contains_short_long(b: &mut Bencher) {
+        b.iter(|| {
+            assert!(!naive2_contains(sh_lo_haystack, sh_lo_needle));
+        })
+    }
+
+    #[bench]
+    fn naive2_contains_bad_naive(b: &mut Bencher) {
+        b.iter(|| {
+            assert!(!naive2_contains(bad_naive_haystack, bad_naive_needle));
+        })
+    }
+
+    #[bench]
+    fn naive2_contains_equal(b: &mut Bencher) {
+        b.iter(|| {
+            assert!(naive2_contains(equal_haystack, equal_needle));
+        })
+    }
+
+    #[bench]
+    fn naive2_contains_all_substrings(b: &mut Bencher) {
+        let n = all_substrings_haystack.len();
+        b.iter(|| {
+            assert!(naive2_contains(all_substrings_haystack, ""));
+            for i in range(0, n) {
+                for j in range(i+1, n + 1) {
+                    assert!(naive2_contains(all_substrings_haystack,
+                                           all_substrings_haystack.slice(i, j)));
+                }
+            }
+        })
+    }
+
+    #[bench]
     fn two_way_contains_short_short(b: &mut Bencher) {
         b.iter(|| {
             assert!(two_way_contains(sh_sh_haystack, sh_sh_needle));
@@ -168,6 +244,20 @@ mod bench {
     fn two_way_contains_equal(b: &mut Bencher) {
         b.iter(|| {
             assert!(two_way_contains(equal_haystack, equal_needle));
+        })
+    }
+
+    #[bench]
+    fn two_way_contains_all_substrings(b: &mut Bencher) {
+        let n = all_substrings_haystack.len();
+        b.iter(|| {
+            assert!(two_way_contains(all_substrings_haystack, ""));
+            for i in range(0, n) {
+                for j in range(i+1, n + 1) {
+                    assert!(two_way_contains(all_substrings_haystack,
+                                             all_substrings_haystack.slice(i, j)));
+                }
+            }
         })
     }
 }
