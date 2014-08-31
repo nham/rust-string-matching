@@ -27,15 +27,20 @@ impl<'a, S> StringMatcher<'a, S> {
     }
 }
 
+pub trait Searcher {
+    fn next(&mut self, haystack: &[u8], needle: &[u8]) -> Option<(uint, uint)>;
+}
+
 // matches result in (i, j) where i is the first index and j is the index after 
 // the last index in the haystack. so if haystack = "abcwoofxyz" and needle = "woof",
 // the match indices are (3, 7)
-impl<'a> Iterator<(uint, uint)> for StringMatcher<'a, naive::Searcher> {
+impl<'a, S: Searcher> Iterator<(uint, uint)> for StringMatcher<'a, S> {
     #[inline]
     fn next(&mut self) -> Option<(uint, uint)> {
         self.searcher.next(self.haystack.as_bytes(), self.needle.as_bytes())
     }
 }
+
 
 pub fn naive_contains<'a>(haystack: &'a str, needle: &'a str) -> bool {
     if needle.is_empty() {
@@ -47,13 +52,6 @@ pub fn naive_contains<'a>(haystack: &'a str, needle: &'a str) -> bool {
 }
 
 
-impl<'a> Iterator<(uint, uint)> for StringMatcher<'a, naive2::Searcher> {
-    #[inline]
-    fn next(&mut self) -> Option<(uint, uint)> {
-        self.searcher.next(self.haystack.as_bytes(), self.needle.as_bytes())
-    }
-}
-
 pub fn naive2_contains<'a>(haystack: &'a str, needle: &'a str) -> bool {
     if needle.is_empty() {
         true
@@ -63,26 +61,12 @@ pub fn naive2_contains<'a>(haystack: &'a str, needle: &'a str) -> bool {
     }
 }
 
-impl<'a> Iterator<(uint, uint)> for StringMatcher<'a, naive3::Searcher> {
-    #[inline]
-    fn next(&mut self) -> Option<(uint, uint)> {
-        self.searcher.next(self.haystack.as_bytes(), self.needle.as_bytes())
-    }
-}
-
 pub fn naive3_contains<'a>(haystack: &'a str, needle: &'a str) -> bool {
     if needle.is_empty() {
         true
     } else {
         let mut sm = StringMatcher::new(haystack, needle, naive3::Searcher::new());
         sm.next().is_some()
-    }
-}
-
-impl<'a> Iterator<(uint, uint)> for StringMatcher<'a, two_way::Searcher> {
-    #[inline]
-    fn next(&mut self) -> Option<(uint, uint)> {
-        self.searcher.next(self.haystack.as_bytes(), self.needle.as_bytes())
     }
 }
 

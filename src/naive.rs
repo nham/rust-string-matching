@@ -8,8 +8,10 @@ impl Searcher {
     pub fn new() -> Searcher {
         Searcher { position: 0 }
     }
+}
 
-    pub fn next(&mut self, haystack: &[u8], needle: &[u8]) 
+impl super::Searcher for Searcher {
+    fn next(&mut self, haystack: &[u8], needle: &[u8])
     -> Option<(uint, uint)> {
         while self.position + needle.len() <= haystack.len() {
             if haystack.slice(self.position, self.position + needle.len()) == needle {

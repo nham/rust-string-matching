@@ -60,8 +60,54 @@ impl Searcher {
         }
     }
 
+    // returns (i, p) where i is the "critical position", the starting index of
+    // of maximal suffix, and p is the period of the suffix
+    // see p. 668 of the paper
     #[inline]
-    pub fn next(&mut self, haystack: &[u8], needle: &[u8])
+    fn maximal_suffix(arr: &[u8], reversed: bool) -> (uint, uint) {
+        let mut left = -1; // Corresponds to i in the paper
+        let mut right = 0; // Corresponds to j in the paper
+        let mut offset = 1; // Corresponds to k in the paper
+        let mut period = 1; // Corresponds to p in the paper
+
+        while right + offset < arr.len() {
+            let a;
+            let b;
+            if reversed {
+                a = arr[left + offset];
+                b = arr[right + offset];
+            } else {
+                a = arr[right + offset];
+                b = arr[left + offset];
+            }
+            if a < b {
+                // Suffix is smaller, period is entire prefix so far.
+                right += offset;
+                offset = 1;
+                period = right - left;
+            } else if a == b {
+                // Advance through repetition of the current period.
+                if offset == period {
+                    right += offset;
+                    offset = 1;
+                } else {
+                    offset += 1;
+                }
+            } else {
+                // Suffix is larger, start over from current location.
+                left = right;
+                right += 1;
+                offset = 1;
+                period = 1;
+            }
+        }
+        (left + 1, period)
+    }
+}
+
+impl super::Searcher for Searcher {
+    #[inline]
+    fn next(&mut self, haystack: &[u8], needle: &[u8])
     -> Option<(uint, uint)> {
         let long_period = self.memory == uint::MAX;
 
@@ -114,47 +160,4 @@ impl Searcher {
         }
     }
 
-    // returns (i, p) where i is the "critical position", the starting index of
-    // of maximal suffix, and p is the period of the suffix
-    // see p. 668 of the paper
-    #[inline]
-    fn maximal_suffix(arr: &[u8], reversed: bool) -> (uint, uint) {
-        let mut left = -1; // Corresponds to i in the paper
-        let mut right = 0; // Corresponds to j in the paper
-        let mut offset = 1; // Corresponds to k in the paper
-        let mut period = 1; // Corresponds to p in the paper
-
-        while right + offset < arr.len() {
-            let a;
-            let b;
-            if reversed {
-                a = arr[left + offset];
-                b = arr[right + offset];
-            } else {
-                a = arr[right + offset];
-                b = arr[left + offset];
-            }
-            if a < b {
-                // Suffix is smaller, period is entire prefix so far.
-                right += offset;
-                offset = 1;
-                period = right - left;
-            } else if a == b {
-                // Advance through repetition of the current period.
-                if offset == period {
-                    right += offset;
-                    offset = 1;
-                } else {
-                    offset += 1;
-                }
-            } else {
-                // Suffix is larger, start over from current location.
-                left = right;
-                right += 1;
-                offset = 1;
-                period = 1;
-            }
-        }
-        (left + 1, period)
-    }
 }

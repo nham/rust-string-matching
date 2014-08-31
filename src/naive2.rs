@@ -6,8 +6,10 @@ impl Searcher {
     pub fn new() -> Searcher {
         Searcher { position: 0 }
     }
+}
 
-    pub fn next(&mut self, haystack: &[u8], needle: &[u8]) 
+impl super::Searcher for Searcher {
+    fn next(&mut self, haystack: &[u8], needle: &[u8])
     -> Option<(uint, uint)> {
         let m = needle.len();
         let n = haystack.len();
