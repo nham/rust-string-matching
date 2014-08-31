@@ -1,0 +1,10 @@
+[package]
+
+name = "rust-string-matching"
+version = "0.0.1"
+authors = ["Nick Hamann <nick@wabbo.org>"]
+
+[[bin]]
+
+name = "match"
+path = "src/main.rs"
