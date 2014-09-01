@@ -7,6 +7,8 @@ extern crate test;
 
 mod naive;
 mod naive2;
+mod naive3;
+mod horspool;
 mod two_way;
 
 pub struct StringMatcher<'a, S> {
@@ -60,6 +62,15 @@ pub fn naive2_contains<'a>(haystack: &'a str, needle: &'a str) -> bool {
     }
 }
 
+pub fn naive3_contains<'a>(haystack: &'a str, needle: &'a str) -> bool {
+    if needle.is_empty() {
+        true
+    } else {
+        let mut sm = StringMatcher::new(haystack, needle, naive3::Searcher::new());
+        sm.next().is_some()
+    }
+}
+
 
 pub fn two_way_contains<'a>(haystack: &'a str, needle: &'a str) -> bool {
     if needle.is_empty() {
@@ -85,7 +96,8 @@ pub fn horspool_contains<'a>(haystack: &'a str, needle: &'a str) -> bool {
 
 #[cfg(test)]
 mod bench {
-    use super::{naive_contains, naive2_contains, two_way_contains};
+    use super::{naive_contains, naive2_contains, naive3_contains, two_way_contains,
+                horspool_contains};
     use test::Bencher;
     // following benchmarks were stolen from libcollections/str.rs
     static sh_sh_haystack: &'static str = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
@@ -222,6 +234,48 @@ mod bench {
     }
 
     #[bench]
+    fn naive3_contains_short_short(b: &mut Bencher) {
+        b.iter(|| {
+            assert!(naive3_contains(sh_sh_haystack, sh_sh_needle));
+        })
+    }
+
+    #[bench]
+    fn naive3_contains_short_long(b: &mut Bencher) {
+        b.iter(|| {
+            assert!(!naive3_contains(sh_lo_haystack, sh_lo_needle));
+        })
+    }
+
+    #[bench]
+    fn naive3_contains_bad_naive(b: &mut Bencher) {
+        b.iter(|| {
+            assert!(!naive3_contains(bad_naive_haystack, bad_naive_needle));
+        })
+    }
+
+    #[bench]
+    fn naive3_contains_equal(b: &mut Bencher) {
+        b.iter(|| {
+            assert!(naive3_contains(equal_haystack, equal_needle));
+        })
+    }
+
+    #[bench]
+    fn naive3_contains_all_substrings(b: &mut Bencher) {
+        let n = all_substrings_haystack.len();
+        b.iter(|| {
+            assert!(naive3_contains(all_substrings_haystack, ""));
+            for i in range(0, n) {
+                for j in range(i+1, n + 1) {
+                    assert!(naive3_contains(all_substrings_haystack,
+                                           all_substrings_haystack.slice(i, j)));
+                }
+            }
+        })
+    }
+
+    #[bench]
     fn two_way_contains_short_short(b: &mut Bencher) {
         b.iter(|| {
             assert!(two_way_contains(sh_sh_haystack, sh_sh_needle));
@@ -254,6 +308,48 @@ mod bench {
         let n = all_substrings_haystack.len();
         b.iter(|| {
             assert!(two_way_contains(all_substrings_haystack, ""));
+            for i in range(0, n) {
+                for j in range(i+1, n + 1) {
+                    assert!(two_way_contains(all_substrings_haystack,
+                                             all_substrings_haystack.slice(i, j)));
+                }
+            }
+        })
+    }
+
+    #[bench]
+    fn horspool_contains_short_short(b: &mut Bencher) {
+        b.iter(|| {
+            assert!(horspool_contains(sh_sh_haystack, sh_sh_needle));
+        })
+    }
+
+    #[bench]
+    fn horspool_contains_short_long(b: &mut Bencher) {
+        b.iter(|| {
+            assert!(!horspool_contains(sh_lo_haystack, sh_lo_needle));
+        })
+    }
+
+    #[bench]
+    fn horspool_contains_bad_naive(b: &mut Bencher) {
+        b.iter(|| {
+            assert!(!horspool_contains(bad_naive_haystack, bad_naive_needle));
+        })
+    }
+
+    #[bench]
+    fn horspool_contains_equal(b: &mut Bencher) {
+        b.iter(|| {
+            assert!(horspool_contains(equal_haystack, equal_needle));
+        })
+    }
+
+    #[bench]
+    fn horspool_contains_all_substrings(b: &mut Bencher) {
+        let n = all_substrings_haystack.len();
+        b.iter(|| {
+            assert!(horspool_contains(all_substrings_haystack, ""));
             for i in range(0, n) {
                 for j in range(i+1, n + 1) {
                     assert!(two_way_contains(all_substrings_haystack,
